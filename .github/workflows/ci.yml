@@ -33,37 +33,47 @@ jobs:
             Write-Host "--- Generated manifest: $($manifest.FullName) ---"
             Get-Content -Path $manifest.FullName | Select-Object -First 30
           }
+      - name: Prepare self-signed MSIX smoke certificate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject 'CN=Gaalbu' -CertStoreLocation 'Cert:\CurrentUser\My'
+          $pfx = Join-Path $env:RUNNER_TEMP 'tokidachi-test-signing.pfx'
+          $password = ConvertTo-SecureString 'tokidachi-ci-only' -AsPlainText -Force
+          Export-PfxCertificate -Cert $cert -FilePath $pfx -Password $password | Out-Null
+          Import-PfxCertificate -FilePath $pfx -CertStoreLocation 'Cert:\CurrentUser\Root' -Password $password | Out-Null
+          "TOKIDACHI_TEST_CERT_THUMBPRINT=$($cert.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host 'Smoke certificate prepared and trusted'
+
+      - name: Sign MSIX for smoke test
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $msix = Get-ChildItem -Path $env:GITHUB_WORKSPACE -Recurse -File -Include *.msix,*.msixbundle |
+            Where-Object { $_.FullName -notmatch '\\Dependencies\\' } |
+            Select-Object -First 1
+          if ($null -eq $msix) { throw 'No MSIX package was produced by the build' }
+          $signtool = Get-ChildItem -Path "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          if ($null -eq $signtool) { throw 'signtool.exe was not found on the runner' }
+          $pfx = Join-Path $env:RUNNER_TEMP 'tokidachi-test-signing.pfx'
+          & $signtool.FullName sign /fd SHA256 /f $pfx /p tokidachi-ci-only $msix.FullName
+          if ($LASTEXITCODE -ne 0) { throw 'MSIX signing failed' }
+          "TOKIDACHI_TEST_MSIX=$($msix.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "MSIX signed: $($msix.FullName)"
+
       - name: Smoke test MSIX installation and launch
         timeout-minutes: 3
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $package = $null
-          $cert = $null
           try {
-            $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject 'CN=Gaalbu' -CertStoreLocation 'Cert:\CurrentUser\My'
-            $pfx = Join-Path $env:RUNNER_TEMP 'tokidachi-test-signing.pfx'
-            $password = ConvertTo-SecureString 'tokidachi-ci-only' -AsPlainText -Force
-            Export-PfxCertificate -Cert $cert -FilePath $pfx -Password $password | Out-Null
-            Import-PfxCertificate -FilePath $pfx -CertStoreLocation 'Cert:\CurrentUser\Root' -Password $password | Out-Null
-
             $unlockKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock'
             New-Item -Path $unlockKey -Force | Out-Null
             New-ItemProperty -Path $unlockKey -Name AllowAllTrustedApps -PropertyType DWord -Value 1 -Force | Out-Null
-
-            $msix = Get-ChildItem -Path $env:GITHUB_WORKSPACE -Recurse -File -Include *.msix,*.msixbundle |
-              Where-Object { $_.FullName -notmatch '\\Dependencies\\' } |
-              Select-Object -First 1
-            if ($null -eq $msix) { throw 'No MSIX package was produced by the build' }
-
-            $signtool = Get-ChildItem -Path "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
-              Sort-Object FullName -Descending | Select-Object -First 1
-            if ($null -eq $signtool) { throw 'signtool.exe was not found on the runner' }
-            & $signtool.FullName sign /fd SHA256 /f $pfx /p tokidachi-ci-only $msix.FullName
-            if ($LASTEXITCODE -ne 0) { throw 'MSIX signing failed' }
-
-            Write-Host "Installing MSIX: $($msix.FullName)"
-            Add-AppxPackage -Path $msix.FullName
+            Write-Host "Installing MSIX: $env:TOKIDACHI_TEST_MSIX"
+            Add-AppxPackage -Path $env:TOKIDACHI_TEST_MSIX
             Write-Host 'MSIX installation completed'
             $package = Get-AppxPackage -Name 'Gaalbu.TokidachiWin'
             if ($null -eq $package) { throw 'MSIX package was not installed' }
@@ -80,5 +90,13 @@ jobs:
           }
           finally {
             if ($null -ne $package) { Write-Host 'Removing MSIX package'; Remove-AppxPackage -Package $package.PackageFullName -ErrorAction SilentlyContinue; Write-Host 'MSIX removal completed' }
-            if ($null -ne $cert) { Remove-Item "Cert:\CurrentUser\My\$($cert.Thumbprint)" -Force -ErrorAction SilentlyContinue; Remove-Item "Cert:\CurrentUser\Root\$($cert.Thumbprint)" -Force -ErrorAction SilentlyContinue }
+          }
+
+      - name: Clean up MSIX smoke certificate
+        if: always()
+        shell: pwsh
+        run: |
+          if ($env:TOKIDACHI_TEST_CERT_THUMBPRINT) {
+            Remove-Item "Cert:\CurrentUser\My\$env:TOKIDACHI_TEST_CERT_THUMBPRINT" -Force -ErrorAction SilentlyContinue
+            Remove-Item "Cert:\CurrentUser\Root\$env:TOKIDACHI_TEST_CERT_THUMBPRINT" -Force -ErrorAction SilentlyContinue
           }
