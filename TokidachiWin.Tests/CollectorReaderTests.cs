@@ -1,5 +1,6 @@
 using System.Text;
 using TokidachiWin.Core;
+using Xunit;
 
 namespace TokidachiWin.Tests;
 
@@ -8,7 +9,7 @@ public sealed class CollectorReaderTests
     [Fact]
     public void ReadsProviderIdsAndStatesFromSharedFixture()
     {
-        using var stream = File.OpenRead("Fixtures/multi-provider.json");
+        using var stream = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Fixtures", "multi-provider.json"));
         var document = new CollectorReader().Read(stream);
 
         Assert.Equal(1, document.Version);
