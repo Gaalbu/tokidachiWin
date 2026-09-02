@@ -44,7 +44,7 @@ jobs:
             $pfx = Join-Path $env:RUNNER_TEMP 'tokidachi-test-signing.pfx'
             $password = ConvertTo-SecureString 'tokidachi-ci-only' -AsPlainText -Force
             Export-PfxCertificate -Cert $cert -FilePath $pfx -Password $password | Out-Null
-            Import-PfxCertificate -FilePath $pfx -CertStoreLocation 'Cert:\CurrentUser\TrustedPeople' -Password $password | Out-Null
+            Import-PfxCertificate -FilePath $pfx -CertStoreLocation 'Cert:\CurrentUser\Root' -Password $password | Out-Null
 
             $unlockKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock'
             New-Item -Path $unlockKey -Force | Out-Null
@@ -74,5 +74,5 @@ jobs:
           }
           finally {
             if ($null -ne $package) { Remove-AppxPackage -Package $package.PackageFullName -ErrorAction SilentlyContinue }
-            if ($null -ne $cert) { Remove-Item "Cert:\CurrentUser\My\$($cert.Thumbprint)" -Force -ErrorAction SilentlyContinue; Remove-Item "Cert:\CurrentUser\TrustedPeople\$($cert.Thumbprint)" -Force -ErrorAction SilentlyContinue }
+            if ($null -ne $cert) { Remove-Item "Cert:\CurrentUser\My\$($cert.Thumbprint)" -Force -ErrorAction SilentlyContinue; Remove-Item "Cert:\CurrentUser\Root\$($cert.Thumbprint)" -Force -ErrorAction SilentlyContinue }
           }
