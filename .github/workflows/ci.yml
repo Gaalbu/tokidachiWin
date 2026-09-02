@@ -34,6 +34,7 @@ jobs:
             Get-Content -Path $manifest.FullName | Select-Object -First 30
           }
       - name: Smoke test MSIX installation and launch
+        timeout-minutes: 3
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
