@@ -30,7 +30,7 @@
                                         <StackPanel Margin="0,4,0,0">
                                             <Grid>
                                                 <TextBlock Text="{Binding Label}" />
-                                                <TextBlock Grid.Column="1" Text="{Binding UsedPercent, StringFormat='{}{0:0}%'}" HorizontalAlignment="Right" />
+                                                <TextBlock Grid.Column="1" Text="{Binding UsedPercentLabel}" HorizontalAlignment="Right" />
                                             </Grid>
                                             <ProgressBar Value="{Binding UsedPercent}" Maximum="100" />
                                         </StackPanel>

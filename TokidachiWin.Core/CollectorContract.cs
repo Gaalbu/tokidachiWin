@@ -24,4 +24,8 @@ public sealed record ProviderCard(
 public sealed record UsageWindow(
     string Label,
     double UsedPercent,
-    string? ResetLabel);
+    string? ResetLabel)
+{
+    [JsonIgnore]
+    public string UsedPercentLabel => $"{UsedPercent:0}%";
+}
