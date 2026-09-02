@@ -75,6 +75,7 @@ jobs:
             Write-Host "Installing MSIX: $env:TOKIDACHI_TEST_MSIX"
             $dependencyRoot = Join-Path (Split-Path $env:TOKIDACHI_TEST_MSIX) 'Dependencies'
             $dependencies = Get-ChildItem -Path $dependencyRoot -Recurse -File -Include *.msix,*.appx -ErrorAction SilentlyContinue |
+              Where-Object { $_.FullName -match '\\Dependencies\\x64\\' } |
               Select-Object -ExpandProperty FullName
             if ($dependencies.Count -eq 0) { throw 'No MSIX dependencies were produced by the build' }
             Add-AppxPackage -Path $env:TOKIDACHI_TEST_MSIX -DependencyPath $dependencies -AllowUnsigned
