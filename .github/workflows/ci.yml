@@ -73,7 +73,11 @@ jobs:
             New-Item -Path $unlockKey -Force | Out-Null
             New-ItemProperty -Path $unlockKey -Name AllowAllTrustedApps -PropertyType DWord -Value 1 -Force | Out-Null
             Write-Host "Installing MSIX: $env:TOKIDACHI_TEST_MSIX"
-            Add-AppxPackage -Path $env:TOKIDACHI_TEST_MSIX -AllowUnsigned
+            $dependencyRoot = Join-Path (Split-Path $env:TOKIDACHI_TEST_MSIX) 'Dependencies'
+            $dependencies = Get-ChildItem -Path $dependencyRoot -Recurse -File -Include *.msix,*.appx -ErrorAction SilentlyContinue |
+              Select-Object -ExpandProperty FullName
+            if ($dependencies.Count -eq 0) { throw 'No MSIX dependencies were produced by the build' }
+            Add-AppxPackage -Path $env:TOKIDACHI_TEST_MSIX -DependencyPath $dependencies -AllowUnsigned
             Write-Host 'MSIX installation completed'
             $package = Get-AppxPackage -Name 'Gaalbu.TokidachiWin'
             if ($null -eq $package) { throw 'MSIX package was not installed' }
