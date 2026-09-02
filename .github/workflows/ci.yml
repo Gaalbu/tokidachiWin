@@ -61,18 +61,23 @@ jobs:
             & $signtool.FullName sign /fd SHA256 /f $pfx /p tokidachi-ci-only $msix.FullName
             if ($LASTEXITCODE -ne 0) { throw 'MSIX signing failed' }
 
+            Write-Host "Installing MSIX: $($msix.FullName)"
             Add-AppxPackage -Path $msix.FullName
+            Write-Host 'MSIX installation completed'
             $package = Get-AppxPackage -Name 'Gaalbu.TokidachiWin'
             if ($null -eq $package) { throw 'MSIX package was not installed' }
             $exe = Join-Path $package.InstallLocation 'TokidachiWin.exe'
-            Start-Process -FilePath $exe
+            Write-Host "Launching app: $exe"
+            $started = Start-Process -FilePath $exe -PassThru
+            Write-Host "Launch returned process id $($started.Id)"
             Start-Sleep -Seconds 5
             $process = Get-Process -Name 'TokidachiWin' -ErrorAction SilentlyContinue
             if ($null -eq $process) { throw 'TokidachiWin did not start' }
             Write-Host 'TokidachiWin started successfully'
             Stop-Process -Id $process.Id -Force
+            Write-Host 'TokidachiWin stopped successfully'
           }
           finally {
-            if ($null -ne $package) { Remove-AppxPackage -Package $package.PackageFullName -ErrorAction SilentlyContinue }
+            if ($null -ne $package) { Write-Host 'Removing MSIX package'; Remove-AppxPackage -Package $package.PackageFullName -ErrorAction SilentlyContinue; Write-Host 'MSIX removal completed' }
             if ($null -ne $cert) { Remove-Item "Cert:\CurrentUser\My\$($cert.Thumbprint)" -Force -ErrorAction SilentlyContinue; Remove-Item "Cert:\CurrentUser\Root\$($cert.Thumbprint)" -Force -ErrorAction SilentlyContinue }
           }
