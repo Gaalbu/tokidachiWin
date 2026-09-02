@@ -22,8 +22,9 @@ jobs:
         if: always()
         shell: pwsh
         run: |
-          $manifests = Get-ChildItem -Path $env:GITHUB_WORKSPACE -Recurse -File -Filter *.appxmanifest -ErrorAction SilentlyContinue |
-            Where-Object { $_.FullName -match '\\obj\\' }
+          $obj = Join-Path $env:GITHUB_WORKSPACE 'TokidachiWin\obj'
+          $manifests = Get-ChildItem -Path $obj -Recurse -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -match '(?i)(appxmanifest|manifest)' }
           if ($null -eq $manifests -or $manifests.Count -eq 0) {
             Write-Host 'No generated appxmanifest found under obj.'
             exit 0
