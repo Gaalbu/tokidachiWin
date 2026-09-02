@@ -18,6 +18,20 @@ jobs:
         run: dotnet test TokidachiWin.Tests/TokidachiWin.Tests.csproj --configuration Release
       - name: Build MSIX-enabled WinUI app
         run: dotnet build TokidachiWin/TokidachiWin.csproj --configuration Release --arch x64 -p:GenerateAppxPackageOnBuild=true -p:AppxPackageSigningEnabled=false
+      - name: Debug generated app manifest
+        if: always()
+        shell: pwsh
+        run: |
+          $manifests = Get-ChildItem -Path $env:GITHUB_WORKSPACE -Recurse -File -Filter *.appxmanifest -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match '\\obj\\' }
+          if ($null -eq $manifests -or $manifests.Count -eq 0) {
+            Write-Host 'No generated appxmanifest found under obj.'
+            exit 0
+          }
+          foreach ($manifest in $manifests) {
+            Write-Host "--- Generated manifest: $($manifest.FullName) ---"
+            Get-Content -Path $manifest.FullName | Select-Object -First 30
+          }
       - name: Smoke test MSIX installation and launch
         shell: pwsh
         run: |
