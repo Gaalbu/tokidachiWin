@@ -28,3 +28,11 @@ dotnet build TokidachiWin/TokidachiWin.csproj --configuration Release --arch x64
 
 The fixture mirrors `tokidachi/fixtures/collector/multi-provider.json` and is
 used only for offline contract tests.
+
+## CI smoke test
+
+The Windows workflow creates a temporary self-signed certificate, signs and
+installs the generated MSIX, starts `TokidachiWin`, verifies the process, then
+stops and uninstalls it. This covers basic package installation, launch, and
+cleanup; it does not cover UI appearance, real credentials, or production
+code-signing certificates.

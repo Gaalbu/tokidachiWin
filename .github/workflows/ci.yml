@@ -17,4 +17,47 @@ jobs:
       - name: Test contract reader
         run: dotnet test TokidachiWin.Tests/TokidachiWin.Tests.csproj --configuration Release
       - name: Build MSIX-enabled WinUI app
-        run: dotnet build TokidachiWin/TokidachiWin.csproj --configuration Release --arch x64
+        run: dotnet build TokidachiWin/TokidachiWin.csproj --configuration Release --arch x64 -p:GenerateAppxPackageOnBuild=true -p:AppxPackageSigningEnabled=false
+      - name: Smoke test MSIX installation and launch
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $package = $null
+          $cert = $null
+          try {
+            $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject 'CN=Gaalbu' -CertStoreLocation 'Cert:\CurrentUser\My'
+            $pfx = Join-Path $env:RUNNER_TEMP 'tokidachi-test-signing.pfx'
+            $password = ConvertTo-SecureString 'tokidachi-ci-only' -AsPlainText -Force
+            Export-PfxCertificate -Cert $cert -FilePath $pfx -Password $password | Out-Null
+            Import-Certificate -FilePath $pfx -CertStoreLocation 'Cert:\CurrentUser\TrustedPeople' | Out-Null
+
+            $unlockKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock'
+            New-Item -Path $unlockKey -Force | Out-Null
+            New-ItemProperty -Path $unlockKey -Name AllowAllTrustedApps -PropertyType DWord -Value 1 -Force | Out-Null
+
+            $msix = Get-ChildItem -Path $env:GITHUB_WORKSPACE -Recurse -File -Include *.msix,*.msixbundle |
+              Where-Object { $_.FullName -notmatch '\\Dependencies\\' } |
+              Select-Object -First 1
+            if ($null -eq $msix) { throw 'No MSIX package was produced by the build' }
+
+            $signtool = Get-ChildItem -Path "$env:ProgramFiles(x86)\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
+              Sort-Object FullName -Descending | Select-Object -First 1
+            if ($null -eq $signtool) { throw 'signtool.exe was not found on the runner' }
+            & $signtool.FullName sign /fd SHA256 /f $pfx /p tokidachi-ci-only $msix.FullName
+            if ($LASTEXITCODE -ne 0) { throw 'MSIX signing failed' }
+
+            Add-AppxPackage -Path $msix.FullName
+            $package = Get-AppxPackage -Name 'Gaalbu.TokidachiWin'
+            if ($null -eq $package) { throw 'MSIX package was not installed' }
+            $exe = Join-Path $package.InstallLocation 'TokidachiWin.exe'
+            Start-Process -FilePath $exe
+            Start-Sleep -Seconds 5
+            $process = Get-Process -Name 'TokidachiWin' -ErrorAction SilentlyContinue
+            if ($null -eq $process) { throw 'TokidachiWin did not start' }
+            Write-Host 'TokidachiWin started successfully'
+            Stop-Process -Id $process.Id -Force
+          }
+          finally {
+            if ($null -ne $package) { Remove-AppxPackage -Package $package.PackageFullName -ErrorAction SilentlyContinue }
+            if ($null -ne $cert) { Remove-Item "Cert:\CurrentUser\My\$($cert.Thumbprint)" -Force -ErrorAction SilentlyContinue; Remove-Item "Cert:\CurrentUser\TrustedPeople\$($cert.Thumbprint)" -Force -ErrorAction SilentlyContinue }
+          }
