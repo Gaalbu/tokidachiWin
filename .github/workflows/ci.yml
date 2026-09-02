@@ -53,8 +53,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $cer = Join-Path $env:RUNNER_TEMP 'tokidachi-test-signing.cer'
-          & certutil.exe -f -user -addstore Root $cer
-          if ($LASTEXITCODE -ne 0) { throw 'Could not trust smoke certificate' }
+          Import-Certificate -FilePath $cer -CertStoreLocation 'Cert:\CurrentUser\Root' | Out-Null
           Write-Host 'Smoke certificate trusted'
 
       - name: Sign MSIX for smoke test
