@@ -4,6 +4,6 @@
   <Properties><DisplayName>Tokidachi</DisplayName><PublisherDisplayName>Gaalbu</PublisherDisplayName><Description>Tokidachi native Windows host</Description><Logo>Assets\StoreLogo.png</Logo></Properties>
   <Dependencies><TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" /></Dependencies>
   <Resources><Resource Language="en-us" /></Resources>
-  <Applications><Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="Windows.FullTrustApplication"><uap:VisualElements AppListEntry="none" DisplayName="Tokidachi" Description="Tokidachi native Windows host" BackgroundColor="transparent" Square150x150Logo="Assets\StoreLogo.png" Square44x44Logo="Assets\StoreLogo.png" /></Application></Applications>
+  <Applications><Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="windows.fullTrustApplication"><uap:VisualElements AppListEntry="none" DisplayName="Tokidachi" Description="Tokidachi native Windows host" BackgroundColor="transparent" Square150x150Logo="Assets\StoreLogo.png" Square44x44Logo="Assets\StoreLogo.png" /></Application></Applications>
   <Capabilities><rescap:Capability Name="runFullTrust" /></Capabilities>
 </Package>
