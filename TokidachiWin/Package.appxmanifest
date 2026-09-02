@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" IgnorableNamespaces="uap">
   <Identity Name="Gaalbu.TokidachiWin" Publisher="CN=Gaalbu" Version="0.1.0.0" />
-  <Properties><DisplayName>Tokidachi</DisplayName><PublisherDisplayName>Gaalbu</PublisherDisplayName><Description>Tokidachi native Windows host</Description></Properties>
+  <Properties><DisplayName>Tokidachi</DisplayName><PublisherDisplayName>Gaalbu</PublisherDisplayName><Description>Tokidachi native Windows host</Description><Logo>Assets\StoreLogo.svg</Logo></Properties>
   <Dependencies><TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" /></Dependencies>
   <Resources><Resource Language="en-us" /></Resources>
-  <Applications><Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="$targetentrypoint$"><uap:VisualElements AppListEntry="none" DisplayName="Tokidachi" Description="Tokidachi native Windows host" BackgroundColor="transparent" /></Application></Applications>
+  <Applications><Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="$targetentrypoint$"><uap:VisualElements AppListEntry="none" DisplayName="Tokidachi" Description="Tokidachi native Windows host" BackgroundColor="transparent" Square150x150Logo="Assets\StoreLogo.svg" Square44x44Logo="Assets\StoreLogo.svg" /></Application></Applications>
 </Package>
