@@ -53,7 +53,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $cer = Join-Path $env:RUNNER_TEMP 'tokidachi-test-signing.cer'
-          & certutil.exe -user -addstore Root $cer
+          & certutil.exe -f -user -addstore Root $cer
           if ($LASTEXITCODE -ne 0) { throw 'Could not trust smoke certificate' }
           Write-Host 'Smoke certificate trusted'
 
