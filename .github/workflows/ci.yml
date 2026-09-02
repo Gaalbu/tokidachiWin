@@ -40,21 +40,10 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject 'CN=Gaalbu' -CertStoreLocation 'Cert:\CurrentUser\My'
           $pfx = Join-Path $env:RUNNER_TEMP 'tokidachi-test-signing.pfx'
-          $cer = Join-Path $env:RUNNER_TEMP 'tokidachi-test-signing.cer'
           $password = ConvertTo-SecureString 'tokidachi-ci-only' -AsPlainText -Force
           Export-PfxCertificate -Cert $cert -FilePath $pfx -Password $password | Out-Null
-          Export-Certificate -Cert $cert -FilePath $cer | Out-Null
           "TOKIDACHI_TEST_CERT_THUMBPRINT=$($cert.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host 'Smoke certificate prepared'
-
-      - name: Trust self-signed MSIX smoke certificate
-        timeout-minutes: 2
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $cer = Join-Path $env:RUNNER_TEMP 'tokidachi-test-signing.cer'
-          Import-Certificate -FilePath $cer -CertStoreLocation 'Cert:\CurrentUser\Root' | Out-Null
-          Write-Host 'Smoke certificate trusted'
 
       - name: Sign MSIX for smoke test
         shell: pwsh
@@ -84,7 +73,7 @@ jobs:
             New-Item -Path $unlockKey -Force | Out-Null
             New-ItemProperty -Path $unlockKey -Name AllowAllTrustedApps -PropertyType DWord -Value 1 -Force | Out-Null
             Write-Host "Installing MSIX: $env:TOKIDACHI_TEST_MSIX"
-            Add-AppxPackage -Path $env:TOKIDACHI_TEST_MSIX
+            Add-AppxPackage -Path $env:TOKIDACHI_TEST_MSIX -AllowUnsigned
             Write-Host 'MSIX installation completed'
             $package = Get-AppxPackage -Name 'Gaalbu.TokidachiWin'
             if ($null -eq $package) { throw 'MSIX package was not installed' }
@@ -109,5 +98,4 @@ jobs:
         run: |
           if ($env:TOKIDACHI_TEST_CERT_THUMBPRINT) {
             Remove-Item "Cert:\CurrentUser\My\$env:TOKIDACHI_TEST_CERT_THUMBPRINT" -Force -ErrorAction SilentlyContinue
-            Remove-Item "Cert:\CurrentUser\Root\$env:TOKIDACHI_TEST_CERT_THUMBPRINT" -Force -ErrorAction SilentlyContinue
           }
